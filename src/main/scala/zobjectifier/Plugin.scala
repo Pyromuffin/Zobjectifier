@@ -10,6 +10,7 @@ import dotty.tools.dotc.core.Symbols.*
 import dotty.tools.dotc.core.Names.*
 import dotty.tools.dotc.core.Types.*
 import dotty.tools.dotc.core.Flags.*
+import dotty.tools.dotc.core.Scopes.newScope
 import dotty.tools.dotc.printing.*
 import dotty.tools.dotc.plugins.{PluginPhase, StandardPlugin}
 import dotty.tools.dotc.transform.{Erasure, Inlining, Pickler, YCheckPositions}
@@ -24,7 +25,7 @@ class Plugin extends StandardPlugin{
   val name: String = "Zobjectifier"
   override val description: String = "objects are now less lazy"
 
-  def init(options: List[String]): List[PluginPhase] = {
+  override def init(options: List[String]): List[PluginPhase] = {
     println("Init Zobjectifier")
     List(new CollectObjects)
   }
@@ -70,7 +71,8 @@ class CollectObjects extends PluginPhase {
 
 
     val prefix = ctx.compilationUnit.source.name.stripSuffix(".scala")
-    val secretClass = newNormalizedClassSymbol(tree.symbol.moduleClass, typeName(prefix + "$SecretHolder"), FlagSet(0), defn.ObjectType :: Nil).entered
+
+    val secretClass = newCompleteClassSymbol(tree.symbol.moduleClass, typeName(prefix + "$SecretHolder"), FlagSet(0), defn.ObjectType :: Nil, newScope).entered
     val constructorSymbol = newConstructor(secretClass, Synthetic, Nil, Nil).entered
     val constructorDef = DefDef(constructorSymbol.asTerm)
 
@@ -82,10 +84,13 @@ class CollectObjects extends PluginPhase {
     val newPackageDef = cpy.PackageDef(tree)(pid = tree.pid, stats = tree.stats ::: secretClassDef :: Nil)
 
 
-    //println(secretMethodDef.show)
-
-    //println("package " + newPackageDef.show)
-
+    /*
+    println("========ZEBRA 1")
+    println(secretMethodDef.show)
+    println("========ZEBRA 2")
+    println("package " + newPackageDef.show)
+    println("========ZEBRA 3")
+    */
     newPackageDef
   }
 

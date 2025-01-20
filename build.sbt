@@ -1,12 +1,19 @@
-ThisBuild / version := "1.0.4"
+ThisBuild / version := "1.1.0"
 
-ThisBuild / scalaVersion := "3.2.2"
+ThisBuild / scalaVersion := "3.6.3"
 val org = "com.pyromuffin"
 isSnapshot := true
 
 githubTokenSource := TokenSource.Or(
   TokenSource.Environment("GITHUB_TOKEN"), // Injected during a github workflow for publishing
   TokenSource.GitConfig("github.token") // local token set in ~/.gitconfig
+)
+
+credentials += Credentials(
+  "GitHub Package Registry",
+  "maven.pkg.github.com",
+  "_",
+  sys.env("GITHUB_TOKEN")
 )
 
 lazy val root = (project in file("."))
