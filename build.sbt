@@ -1,4 +1,4 @@
-ThisBuild / version := "1.1.0"
+ThisBuild / version := "1.2.0"
 
 ThisBuild / scalaVersion := "3.6.3"
 val org = "com.pyromuffin"

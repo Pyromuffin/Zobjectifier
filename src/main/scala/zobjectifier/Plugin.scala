@@ -1,34 +1,100 @@
 package zobjectifier
 
 import dotty.tools.dotc.ast.Trees.*
-import dotty.tools.dotc.ast.{tpd, untpd}
+import dotty.tools.dotc.ast.tpd
 import dotty.tools.dotc.core.Constants.Constant
 import dotty.tools.dotc.core.Contexts.Context
-import dotty.tools.dotc.core.Decorators.*
-import dotty.tools.dotc.core.StdNames.*
+import dotty.tools.dotc.core.DenotTransformers.DenotTransformer
+import dotty.tools.dotc.core.Denotations.SingleDenotation
 import dotty.tools.dotc.core.Symbols.*
 import dotty.tools.dotc.core.Names.*
 import dotty.tools.dotc.core.Types.*
 import dotty.tools.dotc.core.Flags.*
 import dotty.tools.dotc.core.Scopes.newScope
+import dotty.tools.dotc.core.Symbols
 import dotty.tools.dotc.printing.*
 import dotty.tools.dotc.plugins.{PluginPhase, StandardPlugin}
-import dotty.tools.dotc.transform.{Erasure, Inlining, Pickler, YCheckPositions}
+import dotty.tools.dotc.transform.{ElimRepeated, FirstTransform, FullParameterization, ProtectedAccessors}
 import dotty.tools.dotc.typer.TyperPhase
-import dotty.tools.dotc.util.Spans.NoCoord
+import dotty.tools.dotc.transform.MegaPhase.MiniPhase
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
+import scala.quoted.Quotes
+
 
 
 class Plugin extends StandardPlugin{
   val name: String = "Zobjectifier"
   override val description: String = "objects are now less lazy"
 
-  override def init(options: List[String]): List[PluginPhase] = {
+  override def initialize(options: List[String])(using Context) = {
     println("Init Zobjectifier")
-    List(new CollectObjects)
+    List(new CollectObjects, new AddNames)
   }
+
+}
+
+
+
+class AddNames extends PluginPhase {
+
+  import tpd.*
+
+  val phaseName = "AddNames"
+  override val runsAfter = Set(TyperPhase.name)
+
+
+  def isNullLiteral(tree: Tree): Boolean = tree match {
+    case Literal(Constant(null)) => true
+    case _ => false
+  }
+
+  override def transformValDef(tree: tpd.ValDef)(using ctx: Context) : Tree = {
+
+    val thingSymbol = Symbols.getClassIfDefined("Zext.Thing")
+
+    // to catch refined types which for some reason don't count as subclasses
+    val valdefType = tree.tpt.tpe match {
+      case r : RefinedType => r.parent.typeSymbol
+      case  _ => tree.tpt.symbol
+    }
+
+    val isThing = valdefType.denot.isSubClass(thingSymbol)
+    //println(tree.name.show + " flags " + tree.tpt.symbol.flags.flagsString + " type " + tree.tpt )
+
+    if(isThing && !tree.rhs.isEmpty && !isNullLiteral(tree.rhs)){
+
+      val name = tree.name.show
+
+      val setName = tree.symbol.requiredMethod("SetName")
+      //val setNameRef = Ident(setName.namedType)
+
+      val rhs = tree.rhs
+      val select = Select(rhs, setName.namedType)
+      val setNameTree = Apply(select, List(Literal(Constant(name))))
+      val newRhs = setNameTree
+
+     // println(name)
+     // println(rhs.show)
+     // println(rhs)
+
+
+      val newTree = cpy.ValDef(tree)(tree.name, tree.tpt, newRhs)
+      //println("new rhs")
+      //println(newRhs.show)
+      //println(newRhs)
+      //println("----------")
+
+      newTree
+    }
+    else tree
+
+
+  }
+
+
+
 }
 
 
