@@ -25,6 +25,15 @@ def showExpr[T](expr: Expr[T])(using Quotes): Expr[String] =
 
 object Macros{
 
+  inline def SourceCode[T, R](inline func : T => R) : String = {
+    ${sourceImpl('func)}
+  }
+
+  def sourceImpl[T,R](func: Expr[T => R])(using Quotes): Expr[String] = {
+    import quotes.reflect.*
+    val sourceCode = func.show
+    Expr(sourceCode)
+  }
 
   def tpeNmeMacro[A: Type](using Quotes) = {
 
