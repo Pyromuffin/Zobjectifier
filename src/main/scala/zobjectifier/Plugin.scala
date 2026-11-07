@@ -67,6 +67,7 @@ class AddNames extends PluginPhase {
 
       val name = tree.name.show
 
+      // println("name: " + name)
       val setName = tree.symbol.requiredMethod("SetName")
       //val setNameRef = Ident(setName.namedType)
 

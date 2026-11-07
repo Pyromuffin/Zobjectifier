@@ -1,6 +1,6 @@
-ThisBuild / version := "1.2.0"
+ThisBuild / version := "1.3.0"
 
-ThisBuild / scalaVersion := "3.6.3"
+ThisBuild / scalaVersion := "3.10.0"
 val org = "com.pyromuffin"
 isSnapshot := true
 
